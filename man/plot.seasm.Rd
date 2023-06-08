@@ -4,16 +4,7 @@
 \alias{plot.seasm}
 \title{Plot method for seasonality GAM on monthly counts}
 \usage{
-\method{plot}{seasm}(
-  x,
-  ...,
-  type = "panel",
-  param = NULL,
-  transformed = FALSE,
-  title = NULL,
-  xlim = NULL,
-  ylim = NULL
-)
+\method{plot}{seasm}(x, ..., type = "panel")
 }
 \arguments{
 \item{...}{other plotting parameters (not used in this function)}
@@ -23,6 +14,7 @@
    \item{"fit"}{ to plot the GAM fit to the monthly counts}
    \item{"seasonality"}{ to plot the seasonal smooth term in th GAM model}
    \item{"annual"}{ to plot the annual smooth term in th GAM model}
+   \item{"panel"}{ to plot all three plots above (default)}
 }}
 
 \item{object}{an object of class "seasm".}

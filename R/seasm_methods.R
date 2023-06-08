@@ -140,6 +140,7 @@ autoplot.seasm <- function(object,...,type='fit'){
 #'                       \item{"fit"}{ to plot the GAM fit to the monthly counts}
 #'                       \item{"seasonality"}{ to plot the seasonal smooth term in th GAM model}
 #'                       \item{"annual"}{ to plot the annual smooth term in th GAM model}
+#'                       \item{"panel"}{ to plot all three plots above (default)}
 #'                    }
 #'
 #' @return No return value, called for side effects.
@@ -147,7 +148,7 @@ autoplot.seasm <- function(object,...,type='fit'){
 #' @importFrom patchwork plot_layout
 #' @importFrom ggplot2 autoplot
 #' @export
-plot.seasm <- function(x,...,type='panel',param=NULL,transformed=FALSE,title=NULL,xlim=NULL,ylim=NULL){
+plot.seasm <- function(x,...,type='panel'){
   if(is.null(type) || type!='panel'){
     p <- autoplot(x,type=type)
   }else{
