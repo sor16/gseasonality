@@ -36,5 +36,5 @@ get_seasonality_phenotype <- function(mod,year_start,year_end){
                                seasonal_val_01=(seasonal_val-min(seasonal_val))/(max(seasonal_val)-min(seasonal_val)),
                                seasonal_val_qt=qnorm(rank(seasonal_val)/(n()+0.5)),
                                seasonal_val_binary=as.integer(seasonal_val > 0))
-  return(select(pheno_dat,ID,EVENT_DATE,EVENT_MONTH_DEC,seasonal_val,seasonal_val_01,seasonal_val_qt,seasonal_val_binary))
+  return(select(pheno_dat,ID,EVENT_DATE,EVENT_MONTH_DEC,seasonal_val_qt,seasonal_val_binary))
 }

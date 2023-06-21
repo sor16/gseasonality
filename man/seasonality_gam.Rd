@@ -4,17 +4,14 @@
 \alias{seasonality_gam}
 \title{Run seasonality model using monthly counts data}
 \usage{
-seasonality_gam(data, ICD_vec, year_start, year_end)
+seasonality_gam(data, year_start, year_end, adjusted = F)
 }
 \arguments{
 \item{data}{data.frame with columns:
 \itemize{
    \item{"ID"}{ a character denoting the ID of the patient}
-   \item{"ICD"}{ ICD code}
    \item{"EVENT_DATE"}{ The first date when the ICD code is found in the registry}
 }}
-
-\item{ICD_vec}{character vector with the ICD codes characterizing the disease to be analyzed}
 
 \item{year_start}{integer denoting the starting year of the analysis}
 
