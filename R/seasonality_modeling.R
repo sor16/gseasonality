@@ -4,10 +4,8 @@
 #' @param data data.frame with columns:
 #'                    \itemize{
 #'                       \item{"ID"}{ a character denoting the ID of the patient}
-#'                       \item{"ICD"}{ ICD code}
 #'                       \item{"EVENT_DATE"}{ The first date when the ICD code is found in the registry}
 #'                    }
-#' @param ICD_vec character vector with the ICD codes characterizing the disease to be analyzed
 #' @param year_start integer denoting the starting year of the analysis
 #' @param year_end integer denoting the final year of the analysis
 #' @param ... Not used for this function
@@ -18,17 +16,16 @@
 #' @importFrom lubridate ymd year month
 #' @importFrom magrittr "%>%"
 #' @export
-seasonality_gam <- function(data,ICD_vec,year_start,year_end){
-   data_filtered <- filter(data,ICD %in% ICD_vec) %>%
-                    mutate(EVENT_DATE=ymd(EVENT_DATE)) %>%
-                    group_by(ID) %>%
-                    summarise(EVENT_DATE=min(EVENT_DATE)) %>%
-                    mutate(EVENT_YEAR=year(EVENT_DATE),
-                           EVENT_MONTH=month(EVENT_DATE),
-                           EVENT_DAY=day(EVENT_DATE)) %>%
-                    filter(EVENT_YEAR>=year_start,EVENT_YEAR<=year_end)
+seasonality_gam <- function(data,year_start,year_end,adjusted=F){
+  data_filtered <- mutate(data,EVENT_DATE=ymd(EVENT_DATE)) %>%
+                   group_by(ID) %>%
+                   summarise(EVENT_DATE=min(EVENT_DATE)) %>%
+                   mutate(EVENT_YEAR=year(EVENT_DATE),
+                          EVENT_MONTH=month(EVENT_DATE),
+                          EVENT_DAY=day(EVENT_DATE)) %>%
+                   filter(EVENT_YEAR>=year_start,EVENT_YEAR<=year_end)
   monthly_counts <- count(data_filtered,EVENT_YEAR,EVENT_MONTH,name = 'COUNT')
-  mod_list <- run_seasonality_gam(dat=monthly_counts,a=1,b=13)
+  mod_list <- run_seasonality_gam(dat=monthly_counts,adjustment=ifelse(adjusted,'binary',''),a=1,b=13)
   seasonality_summary <- summarise_seasonality(mod_list=mod_list,monthly_counts=monthly_counts)
   seasonality_obj <- list()
   attr(seasonality_obj, "class") <- "seasm"
@@ -37,7 +34,6 @@ seasonality_gam <- function(data,ICD_vec,year_start,year_end){
   seasonality_obj$summary <- seasonality_summary
   seasonality_obj$data <- data_filtered
   seasonality_obj$monthly_counts <- monthly_counts
-  seasonality_obj$ICD <- ICD_vec
   return(seasonality_obj)
 }
 
@@ -73,16 +69,8 @@ get_grid <- function(type,year_start,year_end,adjustment='',by_year=0.1,by_month
 #' @importFrom stats quasipoisson as.formula
 #' @importFrom magrittr "%>%"
 run_seasonality_gam <- function(dat,a,b,adjustment='',adj_month_length=F,mod_null='adj',seasonal_spline_type='cp',k_seasonal=6,seasonal_spline_avg=NULL){
-  dates <- seq(ymd('1998-01-01'),ymd('2019-12-31'),by='1 day')
-  dates_dat <- tibble(EVENT_YEAR=year(dates),EVENT_MONTH=month(dates),EVENT_DAY=day(dates)) %>%
-    group_by(EVENT_YEAR,EVENT_MONTH) %>%
-    summarise(nr_days=max(EVENT_DAY),.groups = 'drop')
-  k_annual <- 6
-  if(adj_month_length){
-    dat <- inner_join(dat,dates_dat,by=c('EVENT_YEAR','EVENT_MONTH'))
-  }else{
-    dat$nr_days <- 30
-  }
+  k_annual=6
+  dat$nr_days <- 30
   offset_null <- 'log(nr_days)'
   if(adjustment=='mean_covariate'){
     dat$avg_seasonal_val <- get_seasonal_spline_adj(seasonal_spline_avg,dat$EVENT_MONTH)
