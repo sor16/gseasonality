@@ -44,14 +44,15 @@ seasonality_mod <- seasonality_gam(diagnosis_data)
 ```
 
 The output of the function is type ‘seasm’ and `summary` and `plot`
-functions can be applied to it to explore and visualize the results:
+functions can be applied to it to explore and visualize the results,
+e.g.:
 
 ``` r
 summary(seasonality_mod)
 #> 
 #> PTR:
 #>  estimate lower-2.5% upper-97.5%
-#>      1.39       1.33        1.48
+#>      1.39       1.32        1.48
 #> 
 #> Characteristics:
 #>       peak trough
@@ -62,14 +63,16 @@ summary(seasonality_mod)
 #> Dispersion: 0.97
 ```
 
+and
+
 ``` r
 plot(seasonality_mod)
 ```
 
-![](man/figures/unnamed-chunk-6-1.png)<!-- -->
+![](man/figures/unnamed-chunk-6-1.png)<!-- --> (plot not shown).
 
-Next, to create the seasonality phenotypes by inputting the previously
-fitted seasonality model object:
+Next, to create the seasonality phenotypes based on the seasonality
+model fit, we write:
 
 ``` r
 seasonality_pheno <- get_seasonality_phenotype(seasonality_mod)
@@ -83,7 +86,7 @@ head(seasonality_pheno)
 #> 6  6 2012-06-01        6.033333      -0.1315310                   1
 ```
 
-The output is a tibble data data frame containing:
+The output is a tibble data frame containing:
 
 - `seasonal_val_binary` - Binary seasonality phenotype. 1 denotes that
   the individual was diagnosed in the season of high incidence and 0
