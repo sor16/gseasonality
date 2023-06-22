@@ -25,12 +25,12 @@ seasonality_gam <- function(data,year_start=NULL,year_end=NULL,adjusted=F){
                           EVENT_MONTH=month(EVENT_DATE),
                           EVENT_DAY=day(EVENT_DATE))
   if(is.null(year_start)){
-    year_start <- min(data$EVENT_YEAR)
+    year_start <- min(data_filtered$EVENT_YEAR)
   }
   if(is.null(year_end)){
-    year_end <- max(data$EVENT_YEAR)
+    year_end <- max(data_filtered$EVENT_YEAR)
   }
-  data_filtered <- filter(EVENT_YEAR>=year_start,EVENT_YEAR<=year_end)
+  data_filtered <- filter(data_filtered,EVENT_YEAR>=year_start,EVENT_YEAR<=year_end)
   monthly_counts <- count(data_filtered,EVENT_YEAR,EVENT_MONTH,name = 'COUNT')
   mod_list <- run_seasonality_gam(dat=monthly_counts,adjustment=ifelse(adjusted,'binary',''),a=1,b=13)
   seasonality_summary <- summarise_seasonality(mod_list=mod_list,monthly_counts=monthly_counts)
