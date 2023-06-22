@@ -6,8 +6,11 @@
 #'                       \item{"ID"}{ a character denoting the ID of the patient}
 #'                       \item{"EVENT_DATE"}{ The first date when the ICD code is found in the registry}
 #'                    }
-#' @param year_start integer denoting the starting year of the analysis
-#' @param year_end integer denoting the final year of the analysis
+#' @param year_start integer denoting the starting year of the analysis.
+#' Defaults to NULL in which case the starting year is taken to be the earliest year in data
+#' @param year_end integer denoting the final year of the analysis.
+#' Defaults to NULL in which case the final year is taken to be the latest year in data
+#' @param adjusted boolean denoting whether to perform seasonal behavioural adjustment. Defaults to FALSE
 #' @param ... Not used for this function
 #' @details Details here
 #' @return The function returns an object of type "seasm"
@@ -16,14 +19,18 @@
 #' @importFrom lubridate ymd year month
 #' @importFrom magrittr "%>%"
 #' @export
-seasonality_gam <- function(data,year_start,year_end,adjusted=F){
+seasonality_gam <- function(data,year_start=NULL,year_end=NULL,adjusted=F){
   data_filtered <- mutate(data,EVENT_DATE=ymd(EVENT_DATE)) %>%
-                   group_by(ID) %>%
-                   summarise(EVENT_DATE=min(EVENT_DATE)) %>%
                    mutate(EVENT_YEAR=year(EVENT_DATE),
                           EVENT_MONTH=month(EVENT_DATE),
-                          EVENT_DAY=day(EVENT_DATE)) %>%
-                   filter(EVENT_YEAR>=year_start,EVENT_YEAR<=year_end)
+                          EVENT_DAY=day(EVENT_DATE))
+  if(is.null(year_start)){
+    year_start <- min(data$EVENT_YEAR)
+  }
+  if(is.null(year_end)){
+    year_end <- max(data$EVENT_YEAR)
+  }
+  data_filtered <- filter(EVENT_YEAR>=year_start,EVENT_YEAR<=year_end)
   monthly_counts <- count(data_filtered,EVENT_YEAR,EVENT_MONTH,name = 'COUNT')
   mod_list <- run_seasonality_gam(dat=monthly_counts,adjustment=ifelse(adjusted,'binary',''),a=1,b=13)
   seasonality_summary <- summarise_seasonality(mod_list=mod_list,monthly_counts=monthly_counts)
@@ -163,3 +170,33 @@ get_monte_carlo_PTR_CI <- function(mod,monthly_counts,nr_iter,adjustment,seasona
   })
   return(list(ptr=ptr_CI,month=month_CI))
 }
+
+#' Prepare output for a seasm model object
+#'
+#' Package the seasonality model to a file to send back the results
+#' @param x a named list of seasonality model objects, where the names represent the corresponding the diseases
+#' @param ... Not used for this function
+#' @param path path to the RData file to be written to disk
+#'                    \itemize{
+#'                       \item{'-'}{ the data field has been removed, to ensure no individual-level data is included}
+#'                       \item{"-"}{ the monthly_counts table has been curated such that only months where 5 or more individuals are diagnosed are included.}
+#'                       \item{"-"}{ the monthly counts table contained in both fit and fit_null has been removed}
+#'                    }
+#'
+#'
+#' @return No return value, called for side effects. Saves an RData file containing a curated version of the seasm model objects where
+#' @seealso \code{\link{seasonality_gam}}, \code{\link{summary.seasm}}, \code{\link{plot.seasm}}
+#' @importFrom dplyr tibble bind_rows
+#' @export
+prepare_output <- function(x,path='output.RData'){
+  x_curated <- lapply(x,function(obj){
+    obj$data <- NULL
+    obj$fit$model <- NULL
+    obj$fit_null$model <- NULL
+    obj$monthly_counts <- filter(obj$monthly_counts,COUNT>=5)
+    return(obj)
+  })
+  names(x_curated) <- names(x)
+  save(x_curated,file=path)
+}
+
