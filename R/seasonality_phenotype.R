@@ -18,7 +18,13 @@
 #' @importFrom magrittr "%>%"
 #' @importFrom stats approx qnorm
 #' @export
-get_seasonality_phenotype <- function(mod,year_start,year_end){
+get_seasonality_phenotype <- function(mod,year_start=NULL,year_end=NULL){
+  if(is.null(year_start)){
+    year_start <- min(mod$data$EVENT_YEAR)
+  }
+  if(is.null(year_end)){
+    year_end <- max(mod$data$EVENT_YEAR)
+  }
   dates <- seq(ymd(paste0(year_start,'-01-01')),ymd(paste0(year_end,'-12-31')),by='1 day')
   num_days_months <- tibble(year=year(dates),month=month(dates),day=day(dates)) %>%
                      group_by(year,month) %>%
