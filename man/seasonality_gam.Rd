@@ -4,7 +4,7 @@
 \alias{seasonality_gam}
 \title{Run seasonality model using monthly counts data}
 \usage{
-seasonality_gam(data, year_start, year_end, adjusted = F)
+seasonality_gam(data, year_start = NULL, year_end = NULL, adjusted = F)
 }
 \arguments{
 \item{data}{data.frame with columns:
@@ -13,9 +13,13 @@ seasonality_gam(data, year_start, year_end, adjusted = F)
    \item{"EVENT_DATE"}{ The first date when the ICD code is found in the registry}
 }}
 
-\item{year_start}{integer denoting the starting year of the analysis}
+\item{year_start}{integer denoting the starting year of the analysis.
+Defaults to NULL in which case the starting year is taken to be the earliest year in data}
 
-\item{year_end}{integer denoting the final year of the analysis}
+\item{year_end}{integer denoting the final year of the analysis.
+Defaults to NULL in which case the final year is taken to be the latest year in data}
+
+\item{adjusted}{boolean denoting whether to perform seasonal behavioural adjustment. Defaults to FALSE}
 
 \item{...}{Not used for this function}
 }
