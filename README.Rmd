@@ -1,0 +1,59 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/"
+)
+```
+
+## gseasonality - Genetics of seasonality <img src="man/figures/logo.png" align="right" alt="" width="140" />
+
+This software package enables assessing the role of genetics in seasonal disease risk. In other words, assessing whether genetic variants are associated with a tendency to be diagnosed with a disease at a certain time of year. There are two main functions in the package: 
+
+```seasonality_gam ``` - Infers the seasonality model using disease diagnosis dates
+
+```get_seasonality_phenotype ``` - Assigns a seasonality phenotype to each individual based on the seasonality model.
+
+## Installation
+If you are connected to internet, the package can be installed by writing
+```{r, eval = FALSE}
+devtools::install_github("sor16/gseasonality")
+```
+For an environment not connected to internet, download a zip file of the package, ship it to your environment and write in the RStudio console:
+```{r, eval = FALSE}
+devtools::install_local('path/to/package/zip/file',type='source',repos=NULL)
+```
+
+
+## Getting started
+The gseasonality package is easy to use. The first step is to fit the seasonality model. It comes with a simulated data set ```diagnosis_data``` which demonstrates the desired format of the data for the seasonality model. It has to have columns with names ID and EVENT_DATE. To run the seasonality model, write
+```{r}
+library(gseasonality)
+seasonality_mod <- seasonality_gam(diagnosis_data)
+```
+
+The output of the function is type 'seasm' and ```summary``` and ```plot``` functions can be applied to it to explore and visualize the results:
+```{r}
+summary(seasonality_mod)
+```
+
+```{r}
+plot(seasonality_mod)
+```
+
+Next, to create the seasonality phenotypes based on the seasonality model fit, we write:
+```{r}
+seasonality_pheno <- get_seasonality_phenotype(seasonality_mod)
+head(seasonality_pheno)
+```
+The output is a tibble data data frame containing:  
+   
+- ```seasonal_val_binary``` - Binary seasonality phenotype. 1 denotes that the individual was diagnosed in the season of high incidence and 0 denotes that the individual was diagnosed in the season of low incidence
+
+- ```seasonal_val_qt``` - Continuous seasonality phenotype value. This denotes the extent of the seasonality curve when an individual is diagnosed with a disease. The phenotype has been quantile normalized.
