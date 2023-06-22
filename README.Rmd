@@ -38,21 +38,22 @@ library(gseasonality)
 seasonality_mod <- seasonality_gam(diagnosis_data)
 ```
 
-The output of the function is type 'seasm' and ```summary``` and ```plot``` functions can be applied to it to explore and visualize the results:
+The output of the function is type 'seasm' and ```summary``` and ```plot``` functions can be applied to it to explore and visualize the results, e.g.:
 ```{r}
 summary(seasonality_mod)
 ```
-
+and 
 ```{r}
 plot(seasonality_mod)
 ```
+(plot not shown).
 
 Next, to create the seasonality phenotypes based on the seasonality model fit, we write:
 ```{r}
 seasonality_pheno <- get_seasonality_phenotype(seasonality_mod)
 head(seasonality_pheno)
 ```
-The output is a tibble data data frame containing:  
+The output is a tibble data frame containing:  
    
 - ```seasonal_val_binary``` - Binary seasonality phenotype. 1 denotes that the individual was diagnosed in the season of high incidence and 0 denotes that the individual was diagnosed in the season of low incidence
 
