@@ -19,11 +19,19 @@
 #' @importFrom stats approx qnorm
 #' @export
 get_seasonality_phenotype <- function(mod,year_start=NULL,year_end=NULL){
+  stopifnot(inherits(mod,'seasm'))
   if(is.null(year_start)){
-    year_start <- min(mod$data$EVENT_YEAR)
+    year_start <- mod$year_start
   }
   if(is.null(year_end)){
-    year_end <- max(mod$data$EVENT_YEAR)
+    year_end <- mod$year_end
+  }
+  check_year_arg(year_start,'year_start')
+  check_year_arg(year_end,'year_end')
+  year_start <- as.integer(year_start)
+  year_end <- as.integer(year_end)
+  if(year_end<=year_start){
+    stop('year_end must be strictly greater than year_start')
   }
   dates <- seq(ymd(paste0(year_start,'-01-01')),ymd(paste0(year_end,'-12-31')),by='1 day')
   num_days_months <- tibble(year=year(dates),month=month(dates),day=day(dates)) %>%
@@ -42,5 +50,5 @@ get_seasonality_phenotype <- function(mod,year_start=NULL,year_end=NULL){
                                seasonal_val_01=(seasonal_val-min(seasonal_val))/(max(seasonal_val)-min(seasonal_val)),
                                seasonal_val_qt=qnorm(rank(seasonal_val)/(n()+0.5)),
                                seasonal_val_binary=as.integer(seasonal_val > 0))
-  return(select(pheno_dat,ID,EVENT_DATE,EVENT_MONTH_DEC,seasonal_val_qt,seasonal_val_binary))
+  return(select(pheno_dat,ID,EVENT_DATE,EVENT_MONTH_DEC,pheno_qt=seasonal_val_qt,pheno_binary=seasonal_val_binary))
 }

@@ -41,28 +41,12 @@ seasonality_gam <- function(data,year_start=NULL,year_end=NULL,adjusted=F){
   if(is.null(year_end)){
     year_end <- max(data_filtered$EVENT_YEAR)
   }
-  if(!inherits(year_start,'integer')){
-    if(inherits(year_start,'numeric')){
-      if(as.integer(year_start)!=year_start){
-        stop('year_start must be an integer')
-      }
-    }else{
-      stop('year_start must be an integer')
-    }
-  }
-  if(!inherits(year_end,'integer')){
-    if(inherits(year_end,'numeric')){
-      if(as.integer(year_end)!=year_end){
-        stop('year_start must be an integer')
-      }
-    }else{
-      stop('year_start must be an integer')
-    }
-  }
+  check_year_arg(year_start,'year_start')
+  check_year_arg(year_end,'year_end')
   year_start <- as.integer(year_start)
   year_end <- as.integer(year_end)
   if(year_end<=year_start){
-    stop('year_end must be strictly greater than year_end')
+    stop('year_end must be strictly greater than year_start')
   }
   data_filtered <- filter(data_filtered,EVENT_YEAR>=year_start,EVENT_YEAR<=year_end)
   monthly_counts <- count(data_filtered,EVENT_YEAR,EVENT_MONTH,name = 'COUNT')
@@ -209,6 +193,18 @@ get_monte_carlo_PTR_CI <- function(mod,monthly_counts,nr_iter,adjustment,seasona
   })
   return(list(ptr=ptr_CI,month=month_CI))
 }
+check_year_arg <- function(arg,name){
+  if(!inherits(arg,'integer')){
+    if(inherits(arg,'numeric')){
+      if(as.integer(arg)!=arg){
+        stop(paste0(name,' must be an integer'))
+      }
+    }else{
+      stop(paste0(name,' must be an integer'))
+    }
+  }
+}
+
 
 #' @importFrom dplyr as_tibble mutate select
 #' @importFrom mgcv gam
