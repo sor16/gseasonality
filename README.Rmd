@@ -38,7 +38,7 @@ library(gseasonality)
 seasonality_mod <- seasonality_gam(diagnosis_data)
 ```
 
-The output of the function is type 'seasm' and ```summary``` and ```plot``` functions can be applied to it to explore and visualize the results, e.g.:
+The output of the function is of type "seasm" and ```summary``` and ```plot``` functions can be applied to it to explore and visualize the results, e.g.:
 ```{r}
 summary(seasonality_mod)
 ```
