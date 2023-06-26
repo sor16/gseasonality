@@ -8,9 +8,9 @@
 summary.seasm <- function(object,...){
   ptr_summary <- object$summary$ptr
   names(ptr_summary) <- paste0(names(ptr_summary),c('','-2.5%','-97.5%'))
-  cat("\nPTR:\n")
+  cat("\nPeak-to-Trough-Ratio (PTR):\n")
   print(format(ptr_summary,digits=2,nsmall=2),row.names=F,right=T)
-  cat("\nCharacteristics:\n")
+  cat("\nSeasonal characteristics:\n")
   print(format(object$summary$peak_trough,digits=2,nsmall=2),right=T)
   cat("\nDeviance explained:",paste0(format(100*object$summary$deviance['deviance_expl'],digits=2,nsmall=2),'%'))
   cat("\nDispersion:",format(object$summary$dispersion,digits=2,nsmall=2))
@@ -43,22 +43,21 @@ plot_fun <- function(object,type,...){
     season_dat <- bind_rows(season_dat,tibble(season='winter',
                                               start=ym(paste0(years[1],'-',1)),
                                               end=ym(paste0(years[1],'-',4))))
-    monthly_counts_endpoint <- mutate(monthly_counts_endpoint,null_pred=predict(object$fit_null),
-                                                              seasonal_pred=predict(object$fit),
-                                                              EVENT_DATE=ymd(paste0(EVENT_YEAR,'-',EVENT_MONTH,'-','01')),
-                                                              month=1:n())
+    monthly_counts_endpoint <- left_join(object$fit_table,object$monthly_counts,by=c('EVENT_YEAR','EVENT_MONTH')) %>%
+                                mutate(EVENT_DATE=ymd(paste0(EVENT_YEAR,'-',EVENT_MONTH,'-','01')),
+                                       month=1:n())
     ggplot(monthly_counts_endpoint) +
       geom_point(aes(x=.data$EVENT_DATE,
                      y=.data$COUNT),alpha=0.5) +
       geom_line(aes(x=.data$EVENT_DATE,
-                    y=exp(seasonal_pred))) +
+                    y=exp(.data$fit))) +
       geom_line(aes(x=.data$EVENT_DATE,
-                    y=exp(null_pred)),
+                    y=exp(fit_null)),
                 col='red') +
       geom_rect(data=season_dat,aes(xmin=start-50,
                                     xmax=end,
-                                    ymin=0.97*min(monthly_counts_endpoint$COUNT),
-                                    ymax=1.03*max(monthly_counts_endpoint$COUNT),
+                                    ymin=0.97*min(monthly_counts_endpoint$COUNT,na.rm=T),
+                                    ymax=1.03*max(monthly_counts_endpoint$COUNT,na.rm=T),
                                     fill=season),alpha=0.1) +
       scale_y_continuous(expand=c(0,0)) +
       scale_x_date(expand=c(0.005,0),date_breaks='3 years',date_labels='%Y') +
@@ -69,15 +68,7 @@ plot_fun <- function(object,type,...){
       theme_classic() +
       theme(legend.position='none')
   }else if(type=='seasonality'){
-    months_vec <- seq(0.5,12.5,by=0.1)
-    year_start <- min(object$monthly_counts$EVENT_YEAR)
-    year_end <- max(object$monthly_counts$EVENT_YEAR)
-    seasonal_pred <- predict(object$fit,newdata=get_grid(type='seasonal',year_start=year_start,year_end=year_end),type='terms',unconditional=T,se.fit=T)
-    seasonal_pred_dat <- tibble(month=months_vec,
-                                est=seasonal_pred$fit[,'s(EVENT_MONTH)'],
-                                lower=est - 1.96*seasonal_pred$se.fit[,'s(EVENT_MONTH)'],
-                                upper=est + 1.96*seasonal_pred$se.fit[,'s(EVENT_MONTH)'])
-    ggplot(seasonal_pred_dat) +
+    ggplot(object$seasonality_term) +
       geom_line(aes(x=month,
                     y=est)) +
       geom_ribbon(aes(x=month,ymin=lower,ymax=upper),alpha=0.3,fill='blue') +
@@ -88,20 +79,12 @@ plot_fun <- function(object,type,...){
       ggtitle('Seasonal component') +
       theme_bw()
   }else if(type=='annual'){
-    years_vec <- seq(min(object$monthly_counts$EVENT_YEAR),max(object$monthly_counts$EVENT_YEAR),by=0.1)
-    year_start <- min(object$monthly_counts$EVENT_YEAR)
-    year_end <- max(object$monthly_counts$EVENT_YEAR)
-    annual_pred <- predict(object$fit,newdata=get_grid(type='annual',year_start=year_start,year_end=year_end),type='terms',unconditional=T,se.fit=T)
-    annual_pred_dat <- tibble(year=years_vec,
-                             est=annual_pred$fit[,'s(EVENT_YEAR)'],
-                             lower=est - 1.96*annual_pred$se.fit[,'s(EVENT_YEAR)'],
-                             upper=est + 1.96*annual_pred$se.fit[,'s(EVENT_YEAR)'])
-    ggplot(annual_pred_dat) +
+    ggplot(object$annual_term) +
       geom_line(aes(x=year,
                     y=est)) +
       geom_ribbon(aes(x=year,ymin=lower,ymax=upper),alpha=0.3,fill='blue') +
       geom_hline(yintercept=0,linetype='dashed',color='red') +
-      scale_x_continuous(limits = c(year_start,year_end),expand=c(0.03,0)) +
+      scale_x_continuous(limits = c(object$year_start,object$year_end),expand=c(0.03,0)) +
       xlab('Year') +
       ylab('Smooth term') +
       ggtitle('Annual component') +
