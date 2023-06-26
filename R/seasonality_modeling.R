@@ -20,6 +20,17 @@
 #' @importFrom magrittr "%>%"
 #' @export
 seasonality_gam <- function(data,year_start=NULL,year_end=NULL,adjusted=F){
+  stopifnot(inherits(data,'data.frame'))
+  stopifnot(inherits(adjusted,'logical'))
+  if(!all(c('ID','EVENT_DATE') %in% names(data))){
+    stop('data must include columns ID and EVENT_DATE. Check the help page for more details by writing ?seasonality_gam')
+  }
+  if(length(unique(data$ID)) != nrow(data)){
+    stop('There must be exactly one entry for each ID. Check the help page for more details by writing ?seasonality_gam')
+  }
+  if(suppressWarnings(any(is.na(ymd(data$EVENT_DATE))))){
+    stop('EVENT_DATE column in data must be in the format YYYY-MM-DD. Check the help page for more details by writing ?seasonality_gam')
+  }
   data_filtered <- mutate(data,EVENT_DATE=ymd(EVENT_DATE)) %>%
                    mutate(EVENT_YEAR=year(EVENT_DATE),
                           EVENT_MONTH=month(EVENT_DATE),
@@ -30,6 +41,29 @@ seasonality_gam <- function(data,year_start=NULL,year_end=NULL,adjusted=F){
   if(is.null(year_end)){
     year_end <- max(data_filtered$EVENT_YEAR)
   }
+  if(!inherits(year_start,'integer')){
+    if(inherits(year_start,'numeric')){
+      if(as.integer(year_start)!=year_start){
+        stop('year_start must be an integer')
+      }
+    }else{
+      stop('year_start must be an integer')
+    }
+  }
+  if(!inherits(year_end,'integer')){
+    if(inherits(year_end,'numeric')){
+      if(as.integer(year_end)!=year_end){
+        stop('year_start must be an integer')
+      }
+    }else{
+      stop('year_start must be an integer')
+    }
+  }
+  year_start <- as.integer(year_start)
+  year_end <- as.integer(year_end)
+  if(year_end<=year_start){
+    stop('year_end must be strictly greater than year_end')
+  }
   data_filtered <- filter(data_filtered,EVENT_YEAR>=year_start,EVENT_YEAR<=year_end)
   monthly_counts <- count(data_filtered,EVENT_YEAR,EVENT_MONTH,name = 'COUNT')
   mod_list <- run_seasonality_gam(dat=monthly_counts,adjustment=ifelse(adjusted,'binary',''),a=1,b=13)
@@ -38,9 +72,14 @@ seasonality_gam <- function(data,year_start=NULL,year_end=NULL,adjusted=F){
   attr(seasonality_obj, "class") <- "seasm"
   seasonality_obj$fit <- mod_list$seasonal
   seasonality_obj$fit_null <- mod_list$null
+  seasonality_obj$fit_table <- get_fit_table(mod_list=mod_list,year_start=year_start,year_end=year_end)
+  seasonality_obj$seasonality_term <- get_seasonality_term(mod=mod_list$seasonal,year_start=year_start,year_end=year_end)
+  seasonality_obj$annual_term <- get_annual_term(mod=mod_list$seasonal,year_start=year_start,year_end=year_end)
   seasonality_obj$summary <- seasonality_summary
   seasonality_obj$data <- data_filtered
   seasonality_obj$monthly_counts <- monthly_counts
+  seasonality_obj$year_start <- year_start
+  seasonality_obj$year_end <- year_end
   return(seasonality_obj)
 }
 
@@ -171,6 +210,43 @@ get_monte_carlo_PTR_CI <- function(mod,monthly_counts,nr_iter,adjustment,seasona
   return(list(ptr=ptr_CI,month=month_CI))
 }
 
+#' @importFrom dplyr as_tibble mutate select
+#' @importFrom mgcv gam
+get_fit_table <- function(mod_list,year_start,year_end){
+  dat_grid <- expand.grid(EVENT_MONTH=seq(1,12),EVENT_YEAR=seq(year_start,year_end)) %>%
+              as_tibble() %>%
+              mutate(nr_days=30,
+                     july=as.integer(floor(EVENT_MONTH)==7),
+                     december=as.integer(floor(EVENT_MONTH)==12 | EVENT_MONTH<1))
+  pred_grid <- mutate(dat_grid,fit_null=predict(mod_list$null,newdata=dat_grid),
+                               fit=predict(mod_list$seasonal,newdata=dat_grid))
+  return(select(pred_grid,EVENT_YEAR,EVENT_MONTH,fit_null,fit))
+}
+
+#' @importFrom dplyr tibble
+#' @importFrom mgcv gam
+get_seasonality_term <- function(mod,year_start,year_end){
+  months_vec <- seq(0.5,12.5,by=0.1)
+  seasonal_pred <- predict(mod,newdata=get_grid(type='seasonal',year_start=year_start,year_end=year_end),type='terms',unconditional=T,se.fit=T)
+  seasonal_pred_dat <- tibble(month=months_vec,
+                              est=seasonal_pred$fit[,'s(EVENT_MONTH)'],
+                              lower=est - 1.96*seasonal_pred$se.fit[,'s(EVENT_MONTH)'],
+                              upper=est + 1.96*seasonal_pred$se.fit[,'s(EVENT_MONTH)'])
+  return(seasonal_pred_dat)
+}
+
+#' @importFrom dplyr tibble
+#' @importFrom mgcv gam
+get_annual_term <- function(mod,year_start,year_end){
+  years_vec <- seq(year_start,year_end,by=0.1)
+  annual_pred <- predict(mod,newdata=get_grid(type='annual',year_start=year_start,year_end=year_end),type='terms',unconditional=T,se.fit=T)
+  annual_pred_dat <- tibble(year=years_vec,
+                            est=annual_pred$fit[,'s(EVENT_YEAR)'],
+                            lower=est - 1.96*annual_pred$se.fit[,'s(EVENT_YEAR)'],
+                            upper=est + 1.96*annual_pred$se.fit[,'s(EVENT_YEAR)'])
+  return(annual_pred_dat)
+}
+
 #' Prepare output for a seasm model object
 #'
 #' Package the seasonality model to a file to send back the results
@@ -191,12 +267,11 @@ get_monte_carlo_PTR_CI <- function(mod,monthly_counts,nr_iter,adjustment,seasona
 prepare_output <- function(x,path='output.RData'){
   x_curated <- lapply(x,function(obj){
     obj$data <- NULL
-    obj$fit$model <- NULL
-    obj$fit_null$model <- NULL
-    obj$monthly_counts <- filter(obj$monthly_counts,COUNT>=5)
+    obj$fit <- NULL
+    obj$fit_null <- NULL
+    obj$monthly_counts <- mutate(obj$monthly_counts,COUNT=ifelse(COUNT>=5,COUNT,0))
     return(obj)
   })
   names(x_curated) <- names(x)
   save(x_curated,file=path)
 }
-
