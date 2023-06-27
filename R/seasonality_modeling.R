@@ -167,7 +167,6 @@ run_seasonality_gam <- function(dat,a,b,adjustment='',adj_month_length=F,mod_nul
   }else{
     stop('mod_null argument not recognized')
   }
-  print(f_null)
   f_seasonal <- paste0(f_seasonal,' + s(EVENT_MONTH, k=k_seasonal, bs="',seasonal_spline_type,'")')
   family <- quasipoisson()
   seasonal <- gam(as.formula(f_seasonal), family=family, data=dat, knots=list(EVENT_MONTH = c(a-0.5, b-0.5)), scale=-1,method = "REML")
