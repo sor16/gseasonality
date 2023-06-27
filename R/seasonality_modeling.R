@@ -19,22 +19,42 @@
 #' @importFrom lubridate ymd year month
 #' @importFrom magrittr "%>%"
 #' @export
-seasonality_gam <- function(data,year_start=NULL,year_end=NULL,adjusted=F){
-  stopifnot(inherits(data,'data.frame'))
+seasonality_gam <- function(data=NULL,monthly_counts=NULL,year_start=NULL,year_end=NULL,adjusted=F){
+  if(is.null(data)){
+    if(is.null(monthly_counts)){
+      stop('Either data or monthly_counts have to be provided')
+    }
+  }else{
+    stopifnot(inherits(data,'data.frame'))
+    if(!all(c('ID','EVENT_DATE') %in% names(data))){
+      stop('data must include columns ID and EVENT_DATE. Check the help page for more details by writing ?seasonality_gam')
+    }
+    if(length(unique(data$ID)) != nrow(data)){
+      stop('There must be exactly one entry for each ID. Check the help page for more details by writing ?seasonality_gam')
+    }
+    if(suppressWarnings(any(is.na(ymd(data$EVENT_DATE))))){
+      stop('EVENT_DATE column in data must be in the format YYYY-MM-DD. Check the help page for more details by writing ?seasonality_gam')
+    }
+    data_filtered <- mutate(data,EVENT_DATE=ymd(EVENT_DATE)) %>%
+                     mutate(EVENT_YEAR=year(EVENT_DATE),
+                            EVENT_MONTH=month(EVENT_DATE),
+                            EVENT_DAY=day(EVENT_DATE))
+  }
+  if(is.null(monthly_counts)){
+    if(is.null(data)){
+      stop('Either data or monthly_counts have to be provided')
+    }
+  }else{
+    stopifnot(inherits(monthly_counts,'data.frame'))
+    if(!all(c('EVENT_YEAR','EVENT_MONTH') %in% names(monthly_counts))){
+      stop('data must include columns EVENT_YEAR and EVENT_MONTH. Check the help page for more details by writing ?seasonality_gam')
+    }
+    if(!is.null(data)){
+      warning('Since data was provided monthly_counts will be ignored. monthly_counts directly generated from data')
+    }
+
+  }
   stopifnot(inherits(adjusted,'logical'))
-  if(!all(c('ID','EVENT_DATE') %in% names(data))){
-    stop('data must include columns ID and EVENT_DATE. Check the help page for more details by writing ?seasonality_gam')
-  }
-  if(length(unique(data$ID)) != nrow(data)){
-    stop('There must be exactly one entry for each ID. Check the help page for more details by writing ?seasonality_gam')
-  }
-  if(suppressWarnings(any(is.na(ymd(data$EVENT_DATE))))){
-    stop('EVENT_DATE column in data must be in the format YYYY-MM-DD. Check the help page for more details by writing ?seasonality_gam')
-  }
-  data_filtered <- mutate(data,EVENT_DATE=ymd(EVENT_DATE)) %>%
-                   mutate(EVENT_YEAR=year(EVENT_DATE),
-                          EVENT_MONTH=month(EVENT_DATE),
-                          EVENT_DAY=day(EVENT_DATE))
   if(is.null(year_start)){
     year_start <- min(data_filtered$EVENT_YEAR)
   }
@@ -48,8 +68,13 @@ seasonality_gam <- function(data,year_start=NULL,year_end=NULL,adjusted=F){
   if(year_end<=year_start){
     stop('year_end must be strictly greater than year_start')
   }
-  data_filtered <- filter(data_filtered,EVENT_YEAR>=year_start,EVENT_YEAR<=year_end)
-  monthly_counts <- count(data_filtered,EVENT_YEAR,EVENT_MONTH,name = 'COUNT')
+  if(!is.null(data)){
+    data_filtered <- filter(data_filtered,EVENT_YEAR>=year_start,EVENT_YEAR<=year_end)
+    monthly_counts <- count(data_filtered,EVENT_YEAR,EVENT_MONTH,name = 'COUNT')
+  }else{
+    monthly_counts <- filter(monthly_counts,EVENT_YEAR>=year_start,EVENT_YEAR<=year_end)
+    data_filtered <- NULL
+  }
   mod_list <- run_seasonality_gam(dat=monthly_counts,adjustment=ifelse(adjusted,'binary',''),a=1,b=13)
   seasonality_summary <- summarise_seasonality(mod_list=mod_list,monthly_counts=monthly_counts)
   seasonality_obj <- list()
@@ -74,6 +99,16 @@ get_seasonal_spline_adj <- function(seasonal_spline_avg,months){
          xout=months)$y
 }
 
+get_month_size <- function(year_start,year_end){
+  dates <- seq(ymd(paste0(year_start,'-01-01')),ymd(paste0(year_end,'-12-31')),by='1 day')
+  month_size_dat <- tibble(EVENT_YEAR=year(dates),
+                           EVENT_MONTH=month(dates),
+                           EVENT_DAY=day(dates)) %>%
+                    group_by(EVENT_YEAR,EVENT_MONTH) %>%
+                    summarise(nr_days=max(EVENT_DAY),.groups = 'drop')
+  return(month_size_dat)
+}
+
 get_grid <- function(type,year_start,year_end,adjustment='',by_year=0.1,by_month=0.1,seasonal_spline_avg=NULL){
   if(type=='seasonal'){
     grid_dat <-data.frame(EVENT_YEAR=year_start, EVENT_MONTH=seq(0.5,12.5,by=by_month))
@@ -82,6 +117,7 @@ get_grid <- function(type,year_start,year_end,adjustment='',by_year=0.1,by_month
   }else{
     stop('Type not recognized')
   }
+  #pick arbitrary value for nr_days
   grid_dat$nr_days <- 30
   if(grepl('mean',adjustment)){
     grid_dat$avg_seasonal_val <- get_seasonal_spline_adj(seasonal_spline_avg,EVENT_MONTH)
@@ -99,8 +135,10 @@ get_grid <- function(type,year_start,year_end,adjustment='',by_year=0.1,by_month
 #' @importFrom stats quasipoisson as.formula
 #' @importFrom magrittr "%>%"
 run_seasonality_gam <- function(dat,a,b,adjustment='',adj_month_length=F,mod_null='adj',seasonal_spline_type='cp',k_seasonal=6,seasonal_spline_avg=NULL){
-  k_annual=6
-  dat$nr_days <- 30
+  month_size_dat <- get_month_size(year_start=min(dat$EVENT_YEAR),year_end=max(dat$EVENT_YEAR))
+  dat <- inner_join(dat,month_size_dat,by=c('EVENT_YEAR','EVENT_MONTH'))
+  #dat$nr_days <- 30
+  k_annual <- 6
   offset_null <- 'log(nr_days)'
   if(adjustment=='mean_covariate'){
     dat$avg_seasonal_val <- get_seasonal_spline_adj(seasonal_spline_avg,dat$EVENT_MONTH)
@@ -129,6 +167,7 @@ run_seasonality_gam <- function(dat,a,b,adjustment='',adj_month_length=F,mod_nul
   }else{
     stop('mod_null argument not recognized')
   }
+  print(f_null)
   f_seasonal <- paste0(f_seasonal,' + s(EVENT_MONTH, k=k_seasonal, bs="',seasonal_spline_type,'")')
   family <- quasipoisson()
   seasonal <- gam(as.formula(f_seasonal), family=family, data=dat, knots=list(EVENT_MONTH = c(a-0.5, b-0.5)), scale=-1,method = "REML")
@@ -150,7 +189,7 @@ summarise_seasonality <- function(mod_list,monthly_counts,adjustment='',seasonal
   month_peak <- seasonal_grid$EVENT_MONTH[idx_peak]
   month_trough <- seasonal_grid$EVENT_MONTH[idx_trough]
   month_peak <- ifelse(month_peak<1,month_peak+12,month_peak) # adjust to month ragne [1,13)
-  month_trough <- ifelse(month_trough<1,month_trough+12,month_trough) # adjust to month ragne [1,13)
+  month_trough <- ifelse(month_trough<1,month_trough+12,month_trough) # adjust to month range [1,13)
   ptr_est <- val_peak / val_trough
   CI <- get_monte_carlo_PTR_CI(mod=mod_list$seasonal,monthly_counts=monthly_counts,nr_iter=100,adjustment=adjustment,seasonal_spline_avg = seasonal_spline_avg)
   peak_trough <- data.frame(peak=c(month_peak,val_peak),trough=c(month_trough,val_trough))
@@ -209,11 +248,12 @@ check_year_arg <- function(arg,name){
 #' @importFrom dplyr as_tibble mutate select
 #' @importFrom mgcv gam
 get_fit_table <- function(mod_list,year_start,year_end){
+  month_size_dat <- get_month_size(year_start=year_start,year_end=year_end)
   dat_grid <- expand.grid(EVENT_MONTH=seq(1,12),EVENT_YEAR=seq(year_start,year_end)) %>%
               as_tibble() %>%
-              mutate(nr_days=30,
-                     july=as.integer(floor(EVENT_MONTH)==7),
-                     december=as.integer(floor(EVENT_MONTH)==12 | EVENT_MONTH<1))
+              mutate(july=as.integer(floor(EVENT_MONTH)==7),
+                     december=as.integer(floor(EVENT_MONTH)==12 | EVENT_MONTH<1)) %>%
+              inner_join(month_size_dat,by=c('EVENT_YEAR','EVENT_MONTH'))
   pred_grid <- mutate(dat_grid,fit_null=predict(mod_list$null,newdata=dat_grid),
                                fit=predict(mod_list$seasonal,newdata=dat_grid))
   return(select(pred_grid,EVENT_YEAR,EVENT_MONTH,fit_null,fit))
@@ -222,8 +262,8 @@ get_fit_table <- function(mod_list,year_start,year_end){
 #' @importFrom dplyr tibble
 #' @importFrom mgcv gam
 get_seasonality_term <- function(mod,year_start,year_end){
-  months_vec <- seq(0.5,12.5,by=0.1)
-  seasonal_pred <- predict(mod,newdata=get_grid(type='seasonal',year_start=year_start,year_end=year_end),type='terms',unconditional=T,se.fit=T)
+  months_vec <- seq(0.5,12.5,by=0.01)
+  seasonal_pred <- predict(mod,newdata=get_grid(type='seasonal',year_start=year_start,year_end=year_end,by_month = 0.01),type='terms',unconditional=T,se.fit=T)
   seasonal_pred_dat <- tibble(month=months_vec,
                               est=seasonal_pred$fit[,'s(EVENT_MONTH)'],
                               lower=est - 1.96*seasonal_pred$se.fit[,'s(EVENT_MONTH)'],
