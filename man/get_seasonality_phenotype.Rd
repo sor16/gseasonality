@@ -4,14 +4,29 @@
 \alias{get_seasonality_phenotype}
 \title{Calculate seasonality phenotype based on seasonality GAM}
 \usage{
-get_seasonality_phenotype(mod, year_start, year_end)
+get_seasonality_phenotype(
+  mod,
+  data = NULL,
+  year_start = NULL,
+  year_end = NULL,
+  adjusted = F
+)
 }
 \arguments{
 \item{mod}{object of type "seasm"}
 
+\item{data}{Optional data.frame with columns:
+      \itemize{
+         \item{"ID"}{ a character denoting the ID of the patient}
+         \item{"EVENT_DATE"}{ character in the format YYYY-MM-DD denoting the first date the disease is recorded in the registry}
+      }
+Useful if mod was fitted on an external data set.}
+
 \item{year_start}{integer denoting the starting year of the analysis}
 
 \item{year_end}{integer denoting the final year of the analysis}
+
+\item{adjusted}{boolean denoting whether to perform specific adjustments for months with low hospital usage (July and December). Defaults to FALSE.}
 
 \item{...}{Not used for this function}
 }

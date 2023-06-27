@@ -4,14 +4,28 @@
 \alias{seasonality_gam}
 \title{Run seasonality model using monthly counts data}
 \usage{
-seasonality_gam(data, year_start = NULL, year_end = NULL, adjusted = F)
+seasonality_gam(
+  data = NULL,
+  monthly_counts = NULL,
+  year_start = NULL,
+  year_end = NULL,
+  adjusted = F
+)
 }
 \arguments{
-\item{data}{data.frame with columns:
+\item{data}{data.frame with the diagnosis date for each individual with the disease. It should contain the columns:
 \itemize{
    \item{"ID"}{ a character denoting the ID of the patient}
-   \item{"EVENT_DATE"}{ The first date when the ICD code is found in the registry}
+   \item{"EVENT_DATE"}{ character in the format YYYY-MM-DD denoting the first date the disease is recorded in the registry}
 }}
+
+\item{monthly_counts}{data.frame with the diagnosis counts per year per month. It should contain the columns:
+\itemize{
+   \item{"EVENT_YEAR"}{ Integer denoting the year}
+   \item{"EVENT_DATE"}{ Integer denoting the month}
+   \item{"COUNT"}{ Integer denoting the number of individuals diagnosed in a particular year and month}
+}
+Either data or monthly_counts must be provided. If both are provided, monthly_counts argument will be ignored and data used to derive the monthly_counts.}
 
 \item{year_start}{integer denoting the starting year of the analysis.
 Defaults to NULL in which case the starting year is taken to be the earliest year in data}
@@ -19,7 +33,7 @@ Defaults to NULL in which case the starting year is taken to be the earliest yea
 \item{year_end}{integer denoting the final year of the analysis.
 Defaults to NULL in which case the final year is taken to be the latest year in data}
 
-\item{adjusted}{boolean denoting whether to perform seasonal behavioural adjustment. Defaults to FALSE}
+\item{adjusted}{boolean denoting whether to perform specific adjustments for months with low hospital usage (July and December). Defaults to FALSE.}
 
 \item{...}{Not used for this function}
 }

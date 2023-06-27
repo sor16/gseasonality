@@ -1,16 +1,23 @@
 #' Run seasonality model using monthly counts data
 #'
 #' Runs a GAM which includes an annual and a seasonal term assuming a quasipoisson count distribution
-#' @param data data.frame with columns:
+#' @param data data.frame with the diagnosis date for each individual with the disease. It should contain the columns:
 #'                    \itemize{
 #'                       \item{"ID"}{ a character denoting the ID of the patient}
-#'                       \item{"EVENT_DATE"}{ The first date when the ICD code is found in the registry}
+#'                       \item{"EVENT_DATE"}{ character in the format YYYY-MM-DD denoting the first date the disease is recorded in the registry}
 #'                    }
+#' @param monthly_counts data.frame with the diagnosis counts per year per month. It should contain the columns:
+#'                       \itemize{
+#'                          \item{"EVENT_YEAR"}{ Integer denoting the year}
+#'                          \item{"EVENT_DATE"}{ Integer denoting the month}
+#'                          \item{"COUNT"}{ Integer denoting the number of individuals diagnosed in a particular year and month}
+#'                       }
+#'                       Either data or monthly_counts must be provided. If both are provided, monthly_counts argument will be ignored and data used to derive the monthly_counts.
 #' @param year_start integer denoting the starting year of the analysis.
 #' Defaults to NULL in which case the starting year is taken to be the earliest year in data
 #' @param year_end integer denoting the final year of the analysis.
 #' Defaults to NULL in which case the final year is taken to be the latest year in data
-#' @param adjusted boolean denoting whether to perform seasonal behavioural adjustment. Defaults to FALSE
+#' @param adjusted boolean denoting whether to perform specific adjustments for months with low hospital usage (July and December). Defaults to FALSE.
 #' @param ... Not used for this function
 #' @details Details here
 #' @return The function returns an object of type "seasm"
@@ -46,8 +53,8 @@ seasonality_gam <- function(data=NULL,monthly_counts=NULL,year_start=NULL,year_e
     }
   }else{
     stopifnot(inherits(monthly_counts,'data.frame'))
-    if(!all(c('EVENT_YEAR','EVENT_MONTH') %in% names(monthly_counts))){
-      stop('data must include columns EVENT_YEAR and EVENT_MONTH. Check the help page for more details by writing ?seasonality_gam')
+    if(!all(c('EVENT_YEAR','EVENT_MONTH','COUNT') %in% names(monthly_counts))){
+      stop('data must include columns EVENT_YEAR, EVENT_MONTH and COUNT. Check the help page for more details by writing ?seasonality_gam')
     }
     if(!is.null(data)){
       warning('Since data was provided monthly_counts will be ignored. monthly_counts directly generated from data')
@@ -90,6 +97,8 @@ seasonality_gam <- function(data=NULL,monthly_counts=NULL,year_start=NULL,year_e
   seasonality_obj$monthly_counts <- monthly_counts
   seasonality_obj$year_start <- year_start
   seasonality_obj$year_end <- year_end
+  seasonality_obj$adjusted <- adjusted
+
   return(seasonality_obj)
 }
 
@@ -231,6 +240,8 @@ get_monte_carlo_PTR_CI <- function(mod,monthly_counts,nr_iter,adjustment,seasona
   })
   return(list(ptr=ptr_CI,month=month_CI))
 }
+
+
 check_year_arg <- function(arg,name){
   if(!inherits(arg,'integer')){
     if(inherits(arg,'numeric')){
