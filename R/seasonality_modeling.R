@@ -75,15 +75,16 @@ seasonality_gam <- function(data=NULL,monthly_counts=NULL,year_start=NULL,year_e
     monthly_counts <- filter(monthly_counts,EVENT_YEAR>=year_start,EVENT_YEAR<=year_end)
     data_filtered <- NULL
   }
-  mod_list <- run_seasonality_gam(dat=monthly_counts,adjustment=ifelse(adjusted,'binary',''),a=1,b=13)
-  seasonality_summary <- summarise_seasonality(mod_list=mod_list,monthly_counts=monthly_counts)
+  adjustment <- ifelse(adjusted,'binary','')
+  mod_list <- run_seasonality_gam(dat=monthly_counts,adjustment=adjustment,a=1,b=13)
+  seasonality_summary <- summarise_seasonality(mod_list=mod_list,monthly_counts=monthly_counts,adjustment=adjustment)
   seasonality_obj <- list()
   attr(seasonality_obj, "class") <- "seasm"
   seasonality_obj$fit <- mod_list$seasonal
   seasonality_obj$fit_null <- mod_list$null
   seasonality_obj$fit_table <- get_fit_table(mod_list=mod_list,year_start=year_start,year_end=year_end)
-  seasonality_obj$seasonality_term <- get_seasonality_term(mod=mod_list$seasonal,year_start=year_start,year_end=year_end)
-  seasonality_obj$annual_term <- get_annual_term(mod=mod_list$seasonal,year_start=year_start,year_end=year_end)
+  seasonality_obj$seasonality_term <- get_seasonality_term(mod=mod_list$seasonal,year_start=year_start,year_end=year_end,adjustment=adjustment)
+  seasonality_obj$annual_term <- get_annual_term(mod=mod_list$seasonal,year_start=year_start,year_end=year_end,adjustment=adjustment)
   seasonality_obj$summary <- seasonality_summary
   seasonality_obj$data <- data_filtered
   seasonality_obj$monthly_counts <- monthly_counts
@@ -122,9 +123,8 @@ get_grid <- function(type,year_start,year_end,adjustment='',by_year=0.1,by_month
   if(grepl('mean',adjustment)){
     grid_dat$avg_seasonal_val <- get_seasonal_spline_adj(seasonal_spline_avg,EVENT_MONTH)
   }else if(adjustment=='binary'){
-    grid_dat$july <- as.integer(floor(EVENT_MONTH)==7)
-    grid_dat$december <- as.integer(floor(EVENT_MONTH)==12 | EVENT_MONTH<1)
-
+    grid_dat$july <- as.integer(floor(grid_dat$EVENT_MONTH)==7)
+    grid_dat$december <- as.integer(floor(grid_dat$EVENT_MONTH)==12 | grid_dat$EVENT_MONTH<1)
   }
   return(grid_dat)
 }
@@ -260,9 +260,9 @@ get_fit_table <- function(mod_list,year_start,year_end){
 
 #' @importFrom dplyr tibble
 #' @importFrom mgcv gam
-get_seasonality_term <- function(mod,year_start,year_end){
+get_seasonality_term <- function(mod,year_start,year_end,adjustment=''){
   months_vec <- seq(0.5,12.5,by=0.01)
-  seasonal_pred <- predict(mod,newdata=get_grid(type='seasonal',year_start=year_start,year_end=year_end,by_month = 0.01),type='terms',unconditional=T,se.fit=T)
+  seasonal_pred <- predict(mod,newdata=get_grid(type='seasonal',year_start=year_start,year_end=year_end,adjustment=adjustment,by_month = 0.01),type='terms',unconditional=T,se.fit=T)
   seasonal_pred_dat <- tibble(month=months_vec,
                               est=seasonal_pred$fit[,'s(EVENT_MONTH)'],
                               lower=est - 1.96*seasonal_pred$se.fit[,'s(EVENT_MONTH)'],
@@ -272,9 +272,9 @@ get_seasonality_term <- function(mod,year_start,year_end){
 
 #' @importFrom dplyr tibble
 #' @importFrom mgcv gam
-get_annual_term <- function(mod,year_start,year_end){
+get_annual_term <- function(mod,year_start,year_end,adjustment=''){
   years_vec <- seq(year_start,year_end,by=0.1)
-  annual_pred <- predict(mod,newdata=get_grid(type='annual',year_start=year_start,year_end=year_end),type='terms',unconditional=T,se.fit=T)
+  annual_pred <- predict(mod,newdata=get_grid(type='annual',year_start=year_start,year_end=year_end,adjustment=adjustment),type='terms',unconditional=T,se.fit=T)
   annual_pred_dat <- tibble(year=years_vec,
                             est=annual_pred$fit[,'s(EVENT_YEAR)'],
                             lower=est - 1.96*annual_pred$se.fit[,'s(EVENT_YEAR)'],
