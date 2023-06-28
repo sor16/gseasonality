@@ -69,10 +69,9 @@ get_seasonality_phenotype <- function(mod,data=NULL,year_start=NULL,year_end=NUL
   pheno_dat <- inner_join(pheno_dat,month_size_dat,by=c('EVENT_YEAR','EVENT_MONTH')) %>%
                mutate(EVENT_MONTH_DEC=EVENT_MONTH + EVENT_DAY/nr_days) %>%
                mutate(EVENT_MONTH_DEC=ifelse(EVENT_MONTH_DEC>12.5,EVENT_MONTH_DEC-12,EVENT_MONTH_DEC))
-  month_grid <- get_grid(type='seasonal',year_start=year_start,year_end=year_end,adjustment=ifelse(mod$adjusted,'binary',''))
-  seasonal_smooth_term <- predict(mod$fit,newdata=month_grid,type='terms',unconditional=T,se.fit=T)
-  pheno_dat <- mutate(pheno_dat,seasonal_val=approx(x=month_grid$EVENT_MONTH,
-                                                    y=seasonal_smooth_term$fit[,'s(EVENT_MONTH)'],
+  #Create phenotypes based on seasonal smooth term
+  pheno_dat <- mutate(pheno_dat,seasonal_val=approx(x=mod$seasonal_term$month,
+                                                    y=mod$seasonal_term$est,
                                                     xout=EVENT_MONTH_DEC)$y,
                                seasonal_val_01=(seasonal_val-min(seasonal_val))/(max(seasonal_val)-min(seasonal_val)),
                                seasonal_val_qt=qnorm(rank(seasonal_val)/(n()+0.5)),
