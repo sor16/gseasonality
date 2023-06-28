@@ -298,7 +298,7 @@ get_annual_term <- function(mod,year_start,year_end,adjustment=''){
 #' Package the seasonality model to a file to send back the results
 #' @param x a named list of seasonality model objects, where the names represent the corresponding the diseases
 #' @param ... Not used for this function
-#' @param path path to the RData file to be written to disk
+#' @param path path to the RDS file to be written to disk
 #'                    \itemize{
 #'                       \item{'-'}{ the data field has been removed, to ensure no individual-level data is included}
 #'                       \item{"-"}{ the monthly_counts table has been curated such that only months where 5 or more individuals are diagnosed are included.}
@@ -306,11 +306,11 @@ get_annual_term <- function(mod,year_start,year_end,adjustment=''){
 #'                    }
 #'
 #'
-#' @return No return value, called for side effects. Saves an RData file containing a curated version of the seasm model objects where
+#' @return No return value, called for side effects. Saves an RDS file containing a curated version of the seasm model objects where
 #' @seealso \code{\link{seasonality_gam}}, \code{\link{summary.seasm}}, \code{\link{plot.seasm}}
-#' @importFrom dplyr tibble bind_rows
+#' @importFrom dplyr mutate tibble bind_rows
 #' @export
-prepare_output <- function(x,path='output.RData'){
+prepare_output <- function(x,path='output.rds'){
   x_curated <- lapply(x,function(obj){
     obj$data <- NULL
     obj$fit <- NULL
@@ -319,5 +319,5 @@ prepare_output <- function(x,path='output.RData'){
     return(obj)
   })
   names(x_curated) <- names(x)
-  save(x_curated,file=path)
+  saveRDS(x_curated,file=path)
 }
