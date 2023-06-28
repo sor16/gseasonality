@@ -70,8 +70,8 @@ get_seasonality_phenotype <- function(mod,data=NULL,year_start=NULL,year_end=NUL
                mutate(EVENT_MONTH_DEC=EVENT_MONTH + EVENT_DAY/nr_days) %>%
                mutate(EVENT_MONTH_DEC=ifelse(EVENT_MONTH_DEC>12.5,EVENT_MONTH_DEC-12,EVENT_MONTH_DEC))
   #Create phenotypes based on seasonal smooth term
-  pheno_dat <- mutate(pheno_dat,seasonal_val=approx(x=mod$seasonal_term$month,
-                                                    y=mod$seasonal_term$est,
+  pheno_dat <- mutate(pheno_dat,seasonal_val=approx(x=mod$seasonality_term$month,
+                                                    y=mod$seasonality_term$est,
                                                     xout=EVENT_MONTH_DEC)$y,
                                seasonal_val_01=(seasonal_val-min(seasonal_val))/(max(seasonal_val)-min(seasonal_val)),
                                seasonal_val_qt=qnorm(rank(seasonal_val)/(n()+0.5)),
