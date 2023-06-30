@@ -201,9 +201,23 @@ summarise_seasonality <- function(mod_list,monthly_counts,adjustment='',seasonal
   ptr_est <- val_peak / val_trough
   CI <- get_monte_carlo_PTR_CI(mod=mod_list$seasonal,monthly_counts=monthly_counts,nr_iter=100,adjustment=adjustment,seasonal_spline_avg = seasonal_spline_avg)
   peak_trough <- data.frame(peak=c(month_peak,val_peak),trough=c(month_trough,val_trough))
+  idx_cross_over_points <- which(seasonal_component_monthly_est[1:(length(seasonal_component_monthly_est)-1)]*
+                                 seasonal_component_monthly_est[2:length(seasonal_component_monthly_est)] < 0)
+  cross_over_points <- seasonal_grid$EVENT_MONTH[idx_cross_over_points]
+  #note: this can fail if there are two consecutive zeros
+  cross_over_list <- list()
+  for(i in 1:length(cross_over_points)){
+    if(seasonal_component_monthly_est[idx_cross_over_points[i]]>seasonal_component_monthly_est[idx_cross_over_points[i]+1]){
+      cross_over_type <- 'high_to_low'
+    }else{
+      cross_over_type <- 'low_to_high'
+    }
+    cross_over_list[[cross_over_type]] <- cross_over_points[i]
+  }
   rownames(peak_trough) <- c('month','value')
   summary_list <- list(ptr=data.frame(estimate=ptr_est,lower=CI$ptr['2.5%'],upper=CI$ptr['97.5%']),
                        peak_trough=peak_trough,
+                       cross_over_points=cross_over_list,
                        pval=summary(mod_list$seasonal)$s.table['s(EVENT_MONTH)','p-value'],
                        deviance=c('deviance'=mod_list$seasonal$deviance,
                                   'deviance_expl'=(mod_list$null$deviance-mod_list$seasonal$deviance)/mod_list$null$deviance),

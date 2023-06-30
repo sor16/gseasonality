@@ -12,7 +12,10 @@ summary.seasm <- function(object,...){
   print(format(ptr_summary,digits=2,nsmall=2),row.names=F,right=T)
   cat("\nSeasonal characteristics:\n")
   print(format(object$summary$peak_trough,digits=2,nsmall=2),right=T)
-  cat("\nDeviance explained:",paste0(format(100*object$summary$deviance['deviance_expl'],digits=2,nsmall=2),'%'))
+  cat("\nCross-over points:\n")
+  cat(paste0('low_to_high ',format(object$summary$cross_over_points[['low_to_high']],digits=2,nsmall=2)))
+  cat(paste0('\nhigh_to_low ',format(object$summary$cross_over_points[['high_to_low']],digits=2,nsmall=2)))
+  cat("\n\nDeviance explained:",paste0(format(100*object$summary$deviance['deviance_expl'],digits=2,nsmall=2),'%'))
   cat("\nDispersion:",format(object$summary$dispersion,digits=2,nsmall=2))
 }
 
