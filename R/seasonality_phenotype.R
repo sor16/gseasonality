@@ -10,7 +10,6 @@
 #'              Useful if mod was fitted on an external data set.
 #' @param year_start integer denoting the starting year of the analysis
 #' @param year_end integer denoting the final year of the analysis
-#' @param adjusted boolean denoting whether to perform specific adjustments for months with low hospital usage (July and December). Defaults to FALSE.
 #' @param ... Not used for this function
 #' @details Details here
 #' @return The function returns a tibble containing two seasonality phenotype:
@@ -25,7 +24,7 @@
 #' @importFrom magrittr "%>%"
 #' @importFrom stats approx qnorm
 #' @export
-get_seasonality_phenotype <- function(mod,data=NULL,year_start=NULL,year_end=NULL,adjusted=F){
+get_seasonality_phenotype <- function(mod,data=NULL,year_start=NULL,year_end=NULL){
   stopifnot(inherits(mod,'seasm'))
   if(!is.null(data)){
     stopifnot(inherits(data,'data.frame'))
