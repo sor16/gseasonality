@@ -4,12 +4,12 @@
 \alias{prepare_output}
 \title{Prepare output for a seasm model object}
 \usage{
-prepare_output(x, path = "output.RData")
+prepare_output(x, path = "output.rds")
 }
 \arguments{
-\item{x}{a named list of seasonality model objects, where the names represent the corresponding the diseases}
+\item{x}{a named list of seasonality model objects, where the names represent the corresponding diseases}
 
-\item{path}{path to the RData file to be written to disk
+\item{path}{path to the RDS file to be written to disk
 \itemize{
    \item{'-'}{ the data field has been removed, to ensure no individual-level data is included}
    \item{"-"}{ the monthly_counts table has been curated such that only months where 5 or more individuals are diagnosed are included.}
@@ -19,7 +19,7 @@ prepare_output(x, path = "output.RData")
 \item{...}{Not used for this function}
 }
 \value{
-No return value, called for side effects. Saves an RData file containing a curated version of the seasm model objects where
+No return value, called for side effects. Saves an RDS file containing a curated version of the seasm model objects where
 }
 \description{
 Package the seasonality model to a file to send back the results

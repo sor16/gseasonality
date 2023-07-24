@@ -20,7 +20,18 @@
 #' @param adjusted boolean denoting whether to perform specific adjustments for months with low hospital usage (July and December). Defaults to FALSE.
 #' @param ... Not used for this function
 #' @details Details here
-#' @return The function returns an object of type "seasm"
+#' @return The function returns an object of type "seasm", including the objects:
+#'  \item{\code{fit}}{ GAM seasonality model fit object which was inferred using aggregated monthly counts data}
+#'  \item{\code{fit_null}}{GAM null model fit object, which does not include a seasonality smooth term, also inferred using aggregated monthly counts data}
+#'  \item{\code{fit_table}}{Table with the fitted values for the seasonality and the null model}
+#'  \item{\code{seasonality_term}}{Table with the values of the seasonality smooth term from the seasonality model}
+#'  \item{\code{annual_term}}{Table with the values of the annual smooth term from the seasonality model}
+#'  \item{\code{summary}}{Summary statistics of the seasonality curve}
+#'  \item{\code{monthly_counts}}{Diagnosis counts per month, derived from the input data.frame}
+#'  \item{\code{data}}{The input data.frame}
+#'  \item{\code{year_start}}{input argument or derived from data}
+#'  \item{\code{year_end}}{input argument or derived from data}
+#'  \item{\code{adjusted}}{input argument}
 #' @seealso \code{\link{summary.seasm} and \link{plot.seasm}} for further studying the output
 #' @importFrom dplyr mutate filter count summarise group_by
 #' @importFrom lubridate ymd year month
@@ -310,7 +321,7 @@ get_annual_term <- function(mod,year_start,year_end,adjustment=''){
 #' Prepare output for a seasm model object
 #'
 #' Package the seasonality model to a file to send back the results
-#' @param x a named list of seasonality model objects, where the names represent the corresponding the diseases
+#' @param x a named list of seasonality model objects, where the names represent the corresponding diseases
 #' @param ... Not used for this function
 #' @param path path to the RDS file to be written to disk
 #'                    \itemize{
@@ -318,7 +329,6 @@ get_annual_term <- function(mod,year_start,year_end,adjustment=''){
 #'                       \item{"-"}{ the monthly_counts table has been curated such that only months where 5 or more individuals are diagnosed are included.}
 #'                       \item{"-"}{ the monthly counts table contained in both fit and fit_null has been removed}
 #'                    }
-#'
 #'
 #' @return No return value, called for side effects. Saves an RDS file containing a curated version of the seasm model objects where
 #' @seealso \code{\link{seasonality_gam}}, \code{\link{summary.seasm}}, \code{\link{plot.seasm}}

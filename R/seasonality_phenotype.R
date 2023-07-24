@@ -1,6 +1,6 @@
 #' Calculate seasonality phenotype based on seasonality GAM
 #'
-#' Based on an input model, this function calculates the seasonality phenotype for each individual
+#' Based on an input seasonality model, this function calculates the seasonality phenotype for each individual
 #' @param mod object of type "seasm"
 #' @param data Optional data.frame with columns:
 #'                    \itemize{
@@ -14,8 +14,11 @@
 #' @details Details here
 #' @return The function returns a tibble containing two seasonality phenotype:
 #'                    \itemize{
-#'                       \item{"seasonal_val_binary"}{ Dichotomous value indicating whether an individual was diagnosed during high/low season as determined by mod}
-#'                       \item{"seasonal_val_01"}{ The proportional height of the seasonality pattern from mod at the diagnosis date}
+#'                    \item{"ID"}{ unique sample ID in your biobank}
+#'                    \item{"EVENT_DATE"}{ first recorded date of diagnosis of the disease in the format YYYY-MM-DD}
+#'                    \item{"EVENT_MONTH_DEC"}{ float denoting the event date as decimal number of months}
+#'                    \item{"pheno_binary"}{ dichotomous seasonality phenotype value. 1 denotes that the individual was diagnosed in the season of high incidence and 0 denotes that the individual was diagnosed in the season of low incidence}
+#'                    \item{"pheno_qt"}{ quantitative seasonality phenotype value. This denotes the extent of the seasonality curve when an individual is diagnosed with a disease. The phenotype has been quantile normalized.}
 #'                    }
 #' @seealso \code{\link{seasonality_gam}}
 #' @importFrom dplyr mutate filter summarise group_by inner_join select

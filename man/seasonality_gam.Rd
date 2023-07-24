@@ -38,7 +38,18 @@ Defaults to NULL in which case the final year is taken to be the latest year in 
 \item{...}{Not used for this function}
 }
 \value{
-The function returns an object of type "seasm"
+The function returns an object of type "seasm", including the objects:
+ \item{\code{fit}}{ GAM seasonality model fit object which was inferred using aggregated monthly counts data}
+ \item{\code{fit_null}}{GAM null model fit object, which does not include a seasonality smooth term, also inferred using aggregated monthly counts data}
+ \item{\code{fit_table}}{Table with the fitted values for the seasonality and the null model}
+ \item{\code{seasonality_term}}{Table with the values of the seasonality smooth term from the seasonality model}
+ \item{\code{annual_term}}{Table with the values of the annual smooth term from the seasonality model}
+ \item{\code{summary}}{Summary statistics of the seasonality curve}
+ \item{\code{monthly_counts}}{Diagnosis counts per month, derived from the input data.frame}
+ \item{\code{data}}{The input data.frame}
+ \item{\code{year_start}}{input argument or derived from data}
+ \item{\code{year_end}}{input argument or derived from data}
+ \item{\code{adjusted}}{input argument}
 }
 \description{
 Runs a GAM which includes an annual and a seasonal term assuming a quasipoisson count distribution
